@@ -6,7 +6,7 @@ config section network
 	option accept_clients    'true'
 	option ip6prefix         '2001:470:c8f7:ee:ee:'                 # /80 prefix bat0/br-clients IPv6 will be $ip6Prefix$macaddress_eth0/64
 	option ip6addr           ''                                     # ipv6/cidr if defined set device ipv6 to that instead of ip6prefix+macaddress_eth0
-	option ip6gw             '2001:470:c8f7:ee:ee::1000'             # ipv6 gateway
+	option ip6gw             '2001:470:c8f7:ee:ee::1000'            # ipv6 gateway
 	option ipaddr            '192.168.1.21'                         # bat0/br-clients IPv4 address
 	option netmask           '255.255.255.0'                        # bat0/br-clients IPv4 netmask
 	option gateway           '192.168.1.1'                          # bat0/br-clients Ipv4 gateway 
