@@ -3,7 +3,7 @@ config section general
 	option bootmode          '0'                                    # 0 First boot, 1 Run Autoconfig (you should set 1 each time you edit this file), 2 Auto Configured, 3 or greater added custom configuration.
 
 config section network
-	option accept_clients    'true'
+	option accept_clients    'false'
 	option ip6prefix         '2001:470:c8f7:ee:ee:'                 # /80 prefix bat0/br-clients IPv6 will be $ip6Prefix$macaddress_eth0/64
 	option ip6addr           ''                                     # ipv6/cidr if defined set device ipv6 to that instead of ip6prefix+macaddress_eth0
 	option ip6gw             '2001:470:c8f7:ee:ee::1000'            # ipv6 gateway
