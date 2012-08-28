@@ -1,0 +1,59 @@
+config section general
+	option debugLevel        '0'
+	option bootmode          '0'                                    # 0 First boot, 1 Run Autoconfig (you should set 1 each time you edit this file), 2 Auto Configured, 3 or greater added custom configuration.
+
+config section network
+	option accept_clients    'true'
+	option ip6prefix         '2001:470:c8f7:ee:ee:'                 # /80 prefix bat0/br-clients IPv6 will be $ip6Prefix$macaddress_eth0/64
+	option ip6addr           ''                                     # ipv6/cidr if defined set device ipv6 to that instead of ip6prefix+macaddress_eth0
+	option ip6gw             '2001:470:c8f7:ee:ee::1000'             # ipv6 gateway
+	option ipaddr            '192.168.1.21'                         # bat0/br-clients IPv4 address
+	option netmask           '255.255.255.0'                        # bat0/br-clients IPv4 netmask
+	option gateway           '192.168.1.1'                          # bat0/br-clients Ipv4 gateway 
+	list   resolvers         '2001:1418:1a9:eeab::100 8.8.8.8'
+	option hostname          'OpenWrt'
+
+config section wireless
+	option wifi_clients      'false'
+	option wifi_mesh         'true'
+	option countrycode       'US'                                   # Now ignored
+	option wifi_channel      '8'
+	option meshSSID          'www.ninux.org'
+	option meshBSSID         '02:aa:bb:cc:dd:ee'
+	option meshMcastRate     '11000'                                # Fix mesh multicast rate to given kbit/s added to penalize links under defined rate but can have side effects on multicast data packets in higher performance links leave blank to disable
+	option apSSID            'NebrodiNet'
+	option apKEY             'nebrodiwifi'                          # A string less the 8 character will be ignored
+	option apMaxClients      '20'                                   # Max number of accepted sta for ap interfaces
+
+config section wired
+	option eth_mesh          'true'
+	option eth_clients       'false'
+
+config section gw4server
+	option enabled           'false'
+	option strictCheck       'false'                                # When true if just one test fail the gateway will not be announced
+	option checkInterval     '10s'
+	option bandwidth         '2000/512'                             # Announced bandwidth Down/Up Kbps/Kbps
+	list   checkHosts        '8.8.8.8'                              # List of host to use for gateway test
+	list   checkHosts        '8.8.4.4'
+
+config section pointing
+	option enabled           'false'                                # If true enable pointing web interface SUGGESTION: Disable this as soon as you don't need it
+
+config section bwtestclient
+	option enabled           'false'                                # If true enable bandwidth testing web client SUGGESTION: Disable this as soon as you don't need it
+
+config section bwtestserver
+	option enabled           'false'                                # If true enable bandwidth testing server SUGGESTION: Disable this as soon as you don't need it
+
+config section sshserver
+	option enabled           'true'
+	option passwdAuth        'false'
+	option sshAuthorizedKeys 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDthXlY8FF1/p1BbTWmlp+xQHRtXppnqp4aylUEg3pZfCTiG9oF+b0KWIXRgmfa9DI/6b830EUCfhjewWhSc+eJbdqu3QyPYetB5HklW93w89dDX2nbi/Y6wYZ/n7zzR4DVqn4z5OGAROc7uHTylhpkVmR7Ri4SHvMqEzaisH9t0HFCST0Egn4ZQ5E+fynn2y95LlsBes7AKITUaJMgsQPPt1uSXzrmae67g+Z/3VdiqtrB3s12Sw1hYH7vz0p1oaTZnNjN8XHThuQMJoqCAtr/cQOHxlJUfvGFteY7CDZ7u/26hdNx191xQWfGLIPay8pGH6pBnS3+GPFuwCwGBQcsV9y2z3yjssNhpDMWxERxJrtE8ODD5IJwUDyilemSj5K1/PtbXu8kFE6HTAeLZ7Kh5vvrXf8oBDPlMtOS/zf6xzAxeGZjdzFvXbS4x320Tgdex0nUIbiytj+Qgw5jDTzx8NONWzi78ZCFDu5aeKkduP223DLCuF8cCxlxbOCa470fyxue9ZrX7XCpbS/UevdKes9JesYwb+PA3ECd7Ay5in3Ss+r1P1vE2QbEQgGGKUFFv70oUi2hCGL1j62ubpScRxs1B+Pv25ye5xS3CAEP13IEQCLX+ikXnSzVaogqLpjSitfZn0W5o26YqDCgpOsLJb/p7w2V6aoxJbOwzDpIEw== gioacchino@G10h4ckLab'
+
+config section firewall
+	option enabled           'false'                                # Enable ebtables firewalling SUGGESTION: Disable this as soon as you don't need it for better performance
+	option isolateDHCP       'false'                                # Prevent local dhcp client from taking ip from mesh dhcp servers useful when you have a local dhcp server but you don't want to share it so gw4server is disabled
+
+config section httpinfo
+	option enabled           'false'                                # Enable exporting info via http

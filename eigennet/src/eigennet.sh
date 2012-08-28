@@ -19,15 +19,14 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 
 COPYRIGHT
 
-START=99
+START=95
 STOP=10
 
 CONF_DIR="/etc/config/"
 
 config_load eigennet
 
-config_get debugLevel             general        "debugLevel"        0
-config_get bootmode               general        "bootmode"          1
+config_get debugLevel general "debugLevel" 0
 
 #[Doc]
 #[Doc] Print mystring if mydebuglevel is greater or equal then debulLevel 
@@ -148,9 +147,16 @@ scan_devices()
 configureNetwork()
 {
 	local accept_clients        ; config_get_bool accept_clients    network     "accept_clients"   1
-	local firewallEnabled       ; config_get_bool firewallEnabled   network     "firewall"         0
-	local mesh6Prefix           ; config_get mesh6Prefix            network     "mesh6Prefix"      "2001:470:ca42:ee:ab:"
-	local ip6gw                 ; config_get ip6gw                  network     "ip6gw"            "2001:470:ca42:ee:ab::1000"
+
+	local mesh6Prefix           ; config_get mesh6Prefix            network     "ip6prefix"        "2001:470:ca42:ee:ab:"
+	local ip6addr               ; config_get ip6addr                network     "ip6addr"
+	local ip6gw                 ; config_get ip6gw                  network     "ip6gw"
+
+	local ipaddr                ; config_get ipaddr                 network     "ipaddr"           "192.168.1.21"
+	local netmask               ; config_get netmask                network     "netmask"          "255.255.255.0"
+	local gateway               ; config_get gateway                network     "gateway"
+
+	local hostName              ; config_get hostName               network     "hostname"         "OpenWrt"
 	local resolvers             ; config_get resolvers              network     "resolvers"
 
 	local wifi_clients          ; config_get_bool wifi_clients      wireless    "wifi_clients"     0
@@ -160,8 +166,7 @@ configureNetwork()
 	local madwifi_clients       ; config_get_bool madwifi_clients   wireless    "wifi_clients"     0
 	local madwifi_mesh          ; config_get_bool madwifi_mesh      wireless    "wifi_mesh"        1
 	local countrycode           ; config_get countrycode            wireless    "countrycode"
-	local mesh2channel          ; config_get mesh2channel           wireless    "mesh2channel"
-	local mesh5channel          ; config_get mesh5channel           wireless    "mesh5channel"
+	local mesh2channel          ; config_get mesh2channel           wireless    "wifi_channel"
 	local meshSSID              ; config_get meshSSID               wireless    "meshSSID"         "www.ninux.org"
 	local meshBSSID             ; config_get meshBSSID              wireless    "meshBSSID"        "02:aa:bb:cc:dd:ee"
 	local meshMcastRate         ; config_get meshMcastRate          wireless    "meshMcastRate"
@@ -172,27 +177,13 @@ configureNetwork()
 	local eth_mesh              ; config_get_bool eth_mesh          wired       "eth_mesh"         1
 	local eth_clients           ; config_get_bool eth_clients       wired       "eth_clients"      1
 
-	if [ $firewallEnabled -eq 0 ]
-		then
-			/etc/init.d/firewall disable
-		else
-			/etc/init.d/firewall enable
-	fi
+	uci set system.@system[0].hostname=$hostName
 
-	echo "
-#Automatically generated for EigenNet
+	/etc/init.d/firewall disable
 
-$(cat /etc/sysctl.conf | grep -v net.ipv4.ip_forward | grep -v net.ipv6.conf.all.forwarding | grep -v net.ipv6.conf.all.autoconf)
+	echo -e "$(cat /etc/sysctl.conf | grep -v net.ipv6.conf.all.autoconf) \n net.ipv6.conf.all.autoconf=0" > /etc/sysctl.conf
 
-net.ipv4.ip_forward=1
-net.ipv6.conf.all.forwarding=1
-net.ipv6.conf.all.autoconf=0
-" > /etc/sysctl.conf
-
-#	echo "#Automatically generated for EigenNet" > $CONF_DIR/wireless
-
-	echo "#Automatically generated for EigenNet
-config 'mesh' 'bat0'" > $CONF_DIR/batman-adv
+	echo "config 'mesh' 'bat0'" > $CONF_DIR/batman-adv
 
 	rm -rf /etc/resolv.conf
 	for dns in $resolvers
@@ -206,8 +197,6 @@ config 'mesh' 'bat0'" > $CONF_DIR/batman-adv
 
 	config_load network
 	config_foreach del_interface interface
-
-	cp /etc/eigennet/regulatory.bin /usr/lib/crda/regulatory.bin
 
 	uci set network.loopback=interface
 	uci set network.loopback.ifname=lo
@@ -225,20 +214,32 @@ config 'mesh' 'bat0'" > $CONF_DIR/batman-adv
 			uci set network.clients.proto=static
 			uci set network.clients.type=bridge
 			uci add_list network.clients.ifname="bat0"
-			#Assuming that we have eth0 onboard
-			uci set network.clients.ip6addr=$mesh6Prefix$(mac6ize $(get_mac eth0))/64
+			if [ "void$ip6addr" == "void" ]
+				then
+					#Assuming that we have eth0 onboard
+					uci set network.clients.ip6addr=$mesh6Prefix$(mac6ize $(get_mac eth0))/64
+				else
+					uci set network.clients.ip6addr=$ip6addr
+			fi
 			uci set network.clients.ip6gw=$ip6gw
-			uci set network.clients.ipaddr=192.168.1.21
-			uci set network.clients.netmask=255.255.255.0
+			uci set network.clients.ipaddr=$ipaddr
+			uci set network.clients.netmask=$netmask
+			uci set network.clients.gateway=$gateway
 		else
 			uci set network.bat0=interface
 			uci set network.bat0.proto=static
 			uci set network.bat0.ifname="bat0"
-			#Assuming that we have eth0 onboard
-			uci set network.bat0.ip6addr=$mesh6Prefix$(mac6ize $(get_mac eth0))/64
+			if [ "void$ip6addr" == "void" ]
+				then
+					#Assuming that we have eth0 onboard
+					uci set network.bat0.ip6addr=$mesh6Prefix$(mac6ize $(get_mac eth0))/64
+				else
+					uci set network.bat0.ip6addr=$ip6addr
+			fi
 			uci set network.bat0.ip6gw=$ip6gw
-			uci set network.bat0.ipaddr=192.168.1.21
-			uci set network.bat0.netmask=255.255.255.0
+			uci set network.bat0.ipaddr=$ipaddr
+			uci set network.bat0.netmask=$netmask
+			uci set network.bat0.gateway=$gateway
 	fi
 
 	for device in $(scan_devices)
@@ -261,7 +262,7 @@ config 'mesh' 'bat0'" > $CONF_DIR/batman-adv
 					uci set network.$device=interface
 					uci set network.$device.ifname=$device
 					uci set network.$device.proto=static
-					uci set network.$device.ip6addr=eeab:$((10 + $devindex))::1/64
+					uci set network.$device.ip6addr=eeab:$(mac6ize $(get_mac $device))::1/64
 					uci set network.$device.ipaddr=192.168.$((10 + $devindex)).21
 					uci set network.$device.netmask=255.255.255.0
 				} && [ $eth_mesh -eq 1 ] &&
@@ -292,7 +293,7 @@ config 'mesh' 'bat0'" > $CONF_DIR/batman-adv
 					uci set network.nmesh$device=interface
 					uci set network.nmesh$device.proto=static
 					uci set network.nmesh$device.mtu=1528
-					uci set network.nmesh$device.ip6addr=eeab:$((20 + $devindex))::1/64
+					uci set network.nmesh$device.ip6addr=eeab:$(mac6ize $(get_mac $device))::1/64
 					uci set network.nmesh$device.ipaddr=192.168.$((20 + $devindex)).21
 					uci set network.nmesh$device.netmask=255.255.255.0
 
@@ -340,7 +341,7 @@ config 'mesh' 'bat0'" > $CONF_DIR/batman-adv
 					uci set network.nmesh$device=interface
 					uci set network.nmesh$device.proto=static
 					uci set network.nmesh$device.mtu=1528
-					uci set network.nmesh$device.ip6addr=eeab:$((30 + $devindex))::1/64
+					uci set network.nmesh$device.ip6addr=eeab:$(mac6ize $(get_mac $device))::1/64
 					uci set network.nmesh$device.ipaddr=192.168.$((30 + $devindex)).21
 					uci set network.nmesh$device.netmask=255.255.255.0
 
@@ -370,59 +371,92 @@ config 'mesh' 'bat0'" > $CONF_DIR/batman-adv
 	done
 }
 
-configureSNMP()
+configureFirewall()
 {
-	local enabled               ; config_get_bool enabled           snmp        "enabled"           1
-	local community             ; config_get      community         snmp        "community"         "public"
-	local accept_clients        ; config_get_bool accept_clients    network     "accept_clients"    1
-	local ath9k_clients         ; config_get_bool ath9k_clients     wireless    "wifi_clients"      0
-	local ath9k_mesh            ; config_get_bool ath9k_mesh        wireless    "wifi_mesh"         1
-	local madwifi_clients       ; config_get_bool madwifi_clients   wireless    "wifi_clients"      0
-	local madwifi_mesh          ; config_get_bool madwifi_mesh      wireless    "wifi_mesh"         1
-	local eth_mesh              ; config_get_bool eth_mesh          wired       "eth_mesh"          1
-	local eth_clients           ; config_get_bool eth_clients       wired       "eth_clients"       1
+	local firewallEnabled       ; config_get_bool firewallEnabled   firewall     "enabled"         0
+	local disabledModDir="/etc/eigennet/firewall-disabled-modules.d/"
+	local enabledModDir="/etc/modules.d/"
+	local ebtablesModulesExp="*ebtables*"
 
-	echo "#Automatically generated for eigenNet
-config 'mini_snmpd' 'snmp'
-	option enabled	0
-" > $CONF_DIR/mini_snmpd
+	if [ ${firewallEnabled} -eq 0 ] 
+		then
+			[ -d "${disabledModDir}" ] || mkdir -p "${disabledModDir}"
+			cd "${enabledModDir}"
+			ls ${ebtablesModulesExp} &> /dev/null && mv ${ebtablesModulesExp} "${disabledModDir}"
+		else
+			[ -d "${disabledModDir}" ] || mkdir -p "${disabledModDir}"
+			cd "${disabledModDir}"
+			ls ${ebtablesModulesExp} &> /dev/null && mv ${ebtablesModulesExp} "${enabledModDir}"
+	fi
+}
 
-	[ $enabled -eq 1 ] &&
-	{
-		uci set mini_snmpd.snmp.enabled=1
-		uci set mini_snmpd.snmp.community="$community"
-		uci set mini_snmpd.snmp.ipv6=1
+configureUhttpd()
+{
+	local pointingEnabled           ; config_get_bool pointingEnabled       pointing         "enabled"                0
+	local bwClientEnabled           ; config_get_bool bwClientEnabled       bwtestclient     "enabled"                0
+	local httpInfoEnabled           ; config_get_bool httpInfoEnabled       httpinfo         "enabled"                0
 
-		if [ $accept_clients -eq 1 ] 
-			then
-				uci set mini_snmpd.snmp.interfaces="clients"
-			else
-				uci set mini_snmpd.snmp.interfaces="bat0"
-		fi
+	if [ $pointingEnabled -eq 0 ] && [ $bwClientEnabled -eq 0 ] && [ $httpInfoEnabled -eq 0 ]
+		then
+			/etc/init.d/uhttpd disable
+		else
+			/etc/init.d/uhttpd enable
+			uci set      uhttpd.main.listen_http="0.0.0.0:80"
+			uci add_list uhttpd.main.listen_http="[::]:80"
+	fi
+}
 
-		for device in $(scan_devices)
-		do
-			devtype=$(echo $device | sed -e 's/[0-9]*$//')
-			devindex=$(echo $device | sed -e 's/.*\([0-9]\)/\1/')
+configureHttpInfo()
+{
+	local httpInfoEnabled           ; config_get_bool httpInfoEnabled       httpinfo         "enabled"                0
+	if [ $httpInfoEnabled eq 1 ]
+		then
+			chmod 777 /www/cgi-bin/getdBm.cgi
+			chmod 777 /www/cgi-bin/ifstat.cgi
+		else
+			chmod 750 /www/cgi-bin/getdBm.cgi
+			chmod 750 /www/cgi-bin/ifstat.cgi
+	fi
+}
 
-			case $devtype in
-				"eth")
-					[ $eth_mesh -eq 1 ] && [ $eth_clients -eq 0 ] && uci add_list mini_snmpd.snmp.interfaces="$device"
-				;;
-				"wifi")
-					[ $madwifi_mesh -eq 1 ] && uci add_list mini_snmpd.snmp.interfaces="nmesh$device"
-				;;
-				"radio")
-					[ $ath9k_mesh -eq 1 ] && uci add_list mini_snmpd.snmp.interfaces="nmesh$device"
-				;;
-			esac
-		done
-	}
+configurePointing()
+{
+	local pointingEnabled           ; config_get_bool pointingEnabled       pointing         "enabled"                0
+
+	[ $pointingEnabled -eq 1 ] && chmod 777 /www/cgi-bin/pointing.cgi
+	[ $pointingEnabled -eq 0 ] && chmod 750 /www/cgi-bin/pointing.cgi
+}
+
+configureBWTestClient()
+{
+	local bwClientEnabled           ; config_get_bool bwClientEnabled       bwtestclient     "enabled"                0
+
+	[ $bwClientEnabled -eq 1 ] && chmod 777 /www/cgi-bin/bwtclient.cgi && chmod 777 /www/cgi-bin/startbwt.cgi
+	[ $bwClientEnabled -eq 0 ] && chmod 750 /www/cgi-bin/bwtclient.cgi && chmod 750 /www/cgi-bin/startbwt.cgi
+}
+
+configureDropbear()
+{
+	local sshEnabled                ; config_get_bool sshEnabled            sshserver         "enabled"               1
+	local passwdAuth                ; config_get_bool passwdAuth            sshserver         "passwdAuth"            0
+	local sshAuthorizedKeys         ; config_get      sshAuthorizedKeys     sshserver         "sshAuthorizedKeys"
+
+	if [ $sshEnabled -eq 1 ]
+		then
+			/etc/init.d/dropbear enable
+			echo "$sshAuthorizedKeys" > "/etc/dropbear/authorized_keys" 
+			uci set dropbear.@dropbear[0].PasswordAuth=$passwdAuth
+			uci set dropbear.@dropbear[0].RootPasswordAuth=$passwdAuth
+		else
+			/etc/init.d/dropbear disable
+	fi
 }
 
 start()
 {
 	eigenDebug 0 "Starting"
+
+	config_get bootmode general "bootmode" 1
 
 	[ $bootmode -eq 0 ] &&
 	{
@@ -440,14 +474,12 @@ start()
 	{
 		sleep 10s
 
-		local sshAuthorizedKeys	; config_get sshAuthorizedKeys		network		sshAuthorizedKeys
-		echo "$sshAuthorizedKeys" > "/etc/dropbear/authorized_keys" 
-
+		configureBWTestClient
+		configureUhttpd
+		configurePointing
+		configureDropbear
 		configureNetwork
-		configureSNMP
-
-		uci set dropbear.@dropbear[0].PasswordAuth=off
-		uci set dropbear.@dropbear[0].RootPasswordAuth=off
+		configureFirewall
 
 		uci set eigennet.general.bootmode=2
 
@@ -461,8 +493,6 @@ start()
 
 	[ $bootmode -ge 2 ] &&
 	{
-		sysctl -w net.ipv4.ip_forward=1
-		sysctl -w net.ipv6.conf.all.forwarding=1
 		sysctl -w net.ipv6.conf.all.autoconf=0
 
 		local accept_clients
@@ -471,16 +501,19 @@ start()
 
 		ip link set dev bat0 up
 
-		local firewallEnabled
-		config_get_bool firewallEnabled network "firewall" 0
-		[ $firewallEnabled -eq 0 ] && /etc/init.d/firewall stop
-
 		batman-adv restart #added as workaround of batman-adv eth hotplug bug
 
-		local gw4Enabled ; config_get_bool gw4Enabled gateway4 "enabled" 0
-		[ $gw4Enabled -eq 0 ] || gw4check &
-
-		/etc/init.d/sysntpd stop #Devices could not reach ntp server so it runs forever, so better to stop it till openwrt ntp server will be reacheable from ipv6
+		local isolateDHCP     ; config_get_bool isolateDHCP       firewall     "isolateDHCP"      0
+		local firewallEnabled ; config_get_bool firewallEnabled   firewall     "enabled"          0
+		local accept_clients  ; config_get_bool accept_clients    network      "accept_clients"   1
+		local eth_clients     ; config_get_bool eth_clients       wired        "eth_clients"      1
+		local wifi_clients    ; config_get_bool wifi_clients      wireless     "wifi_clients"     0
+		[ ${isolateDHCP} -eq 1 ] && [ ${firewallEnabled} -eq 1 ] &&
+		[ ${accept_clients} ] && $( [ ${eth_clients} -eq 1 ] || [ ${wifi_clients} -eq 1 ] ) &&
+		{
+			ebtables -A FORWARD --out-if bat0 --protocol IPv4 --ip-protocol udp --ip-source-port 68 -j DROP
+			ebtables -A FORWARD --in-if  bat0 --protocol IPv4 --ip-protocol udp --ip-source-port 67 -j DROP
+		}
 
 		return 0
 	}
