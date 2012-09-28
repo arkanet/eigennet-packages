@@ -18,7 +18,7 @@ config section wireless
 	option wifi_mesh         'true'
 	option countrycode       'US'                                   # Now ignored
 	option wifi_channel      '8'
-	option meshSSID          'www.ninux.org'
+	option meshSSID          'www.eigenlab.org-www.ninux.org'
 	option meshBSSID         '02:aa:bb:cc:dd:ee'
 	option meshMcastRate     '6000'                                 # Fix mesh multicast rate to given kbit/s added to penalize links under defined rate but can have side effects on multicast data packets in higher performance links leave blank to disable
 	option apSSID            'eigenNet'
