@@ -66,10 +66,10 @@ config section 'pointing'
 	option enabled '1'
 
 config section 'bwtestclient'
-	option enabled '1'
+	option enabled '0'
 
 config section 'bwtestserver'
-	option enabled '1'
+	option enabled '0'
 
 config section 'sshserver'					# Setting your ssh pubblic key
 	option enabled '1'
